@@ -1,178 +1,84 @@
 # TextToResources
-"""
-This repository allows for the generation of PDFs, cheatsheets, and flashcards from text captions derived from audio files. Utilizing the LLaMA 3 LLM model, Lecturify processes the captions to create these educational resources and serves them on a local host.
-"""
+<br>
 
-from langchain_ollama import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate
-from fpdf import FPDF
-import markdown
-import re
-from fastapi import FastAPI, HTTPException
-import uvicorn
-from fastapi.responses import FileResponse, PlainTextResponse,JSONResponse
-from pydantic import BaseModel
-from fastapi.middleware.cors import CORSMiddleware
+TextToResources is a powerful tool that generates PDFs, cheatsheets, and flashcards from text captions derived from audio files. Leveraging the LLaMA 3 LLM model, this repository processes captions to create valuable educational resources, which are then served on a local host for easy access.
 
-model = OllamaLLM(model='llama3')  
+<br>
 
-def pdf_generation(user_prompt):
-    pdf_template = """
-    Answer the question below:
-    Here is the conversation history: {context}
-    Question: {question}
-    Above given is a lecture. Generate lecture notes of the lecture that is over 1000 words long. Ensure that these notes captures the significant details of the text in over 1000 words. Output this 1000 word notes using markdown formatting. it must be in markdown and structure into title, paragraph, lists.
-    """
-    pdf_input_prompt = {
-    "context": "",  
-    "question": f"{user_prompt}\n"
-    }
-    pdf_prompt = ChatPromptTemplate.from_template(template=pdf_template)
-    pdf_chain = pdf_prompt | model
-    pdf_result = pdf_chain.invoke(pdf_input_prompt)
-    # print(pdf_result)
-    pdf_formatted_result = str(pdf_result).replace("h4", "h3") # TODO Remove
-    pdf_formatted_result = pdf_formatted_result.replace("→", "->")
-    final_result = ""
+# Project Background
+<br>
 
-    for line in pdf_formatted_result.split("\n"):
-        if "--" not in line and "•" not in line:
-            final_result += line
-            final_result+='\n'
-    return markdown.markdown(final_result)
+This project was developed by a team of three SRMIST students—Afnaan, Jeswyn, and Hashin—as part of the Red Bull Basement contest. Our innovative approach to converting text captions into versatile learning materials earned us a spot as intra-university finalists. The project garnered significant interest from judges, who saw great potential for further development. Unfortunately, due to time constraints, the interfacing wasn't fully completed, which sadly prevented us from being fast-tracked to the next tier of the competition.
 
-def initialize():
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-    pdf.set_font("Times", size=14)
-    return pdf
+<br>
 
-def html2pdf(pdf, html_text):
-    pdf.write_html(html_text)
+# Features
+<br>
 
-def create(html_text, output_file):
-    pdf = initialize()
-    html2pdf(pdf, html_text)
-    pdf.output(output_file)
+PDF Generation: Converts text captions into well-formatted PDF documents for easy reading and printing.
+Cheatsheet Creation: Summarizes key points from the text captions into concise cheatsheets.
+Flashcard Development: Transforms text captions into interactive flashcards for effective study and revision.
 
-#create(pdf_generation(pdf_template), "summary.pdf")
+<br>
 
+# How It Works
+<br>
 
-def flashcard_generation(user_prompt):
-    flashcard_template = """
-    Answer the question below:
-    Here is the conversation history: {context}
-    Question: {question}
-    Generate exactly two lists based on the given data. The first list should contain more than 15 questions that are logical, advanced, problem-solving, theoretical, and calculation-based. The second list should contain the corresponding answers to these questions. Provide only the two lists in the response, without any additional text, expressions, or conclusions.
-    """
+Upload Captions: Begin by uploading text captions derived from an audio file.
+Processing: The LLaMA 3 LLM model processes the uploaded captions.
+Output Generation: Generate PDFs, cheatsheets, and flashcards.
+Local Host Access: Access all generated resources on a local host.
 
-    flashcard_input_prompt = {
-    "context": "",  
-    "question": f"{user_prompt}\n"
-    }
-    flashcard_prompt = ChatPromptTemplate.from_template(template=flashcard_template)
-    flashcard_chain = flashcard_prompt | model
-    flashcard_result = flashcard_chain.invoke(flashcard_input_prompt)
-    question_pattern = re.compile(r'\d+\.\s.*?\?')
-    answer_pattern = re.compile(r'\d+\.\s.*?(?=\d+\.\s|\Z)', re.DOTALL)
-    questions = question_pattern.findall(flashcard_result)
-    answers = answer_pattern.findall(flashcard_result)
-    answers = [answer.strip() for answer in answers]
-    questions = [question.strip() for question in questions]
-    def remove_elements(questions, answers):
-        answers[:] = [item for item in answers if item not in questions] 
-    remove_elements(questions, answers)
-    def transfer_first_element(answers, questions):
-        if answers:  
-            element = answers.pop(0)  
-            questions.append(element)
-    transfer_first_element(answers, questions)
-    def remove_substring_from_last_element(string_list, substring, substring_):
-        if string_list:  
-            last_element = string_list[-1]  
-            if substring in last_element:  
-                last_element = last_element.replace(substring, "")
-                string_list[-1] = last_element
-            elif substring_ in last_element:
-                last_element = last_element.replace(substring_, "")
-                string_list[-1] = last_element
-    remove_substring_from_last_element(questions, "\n\nList 2: Answers", "\n\n*List 2: Answers*")
-    list_len = len(questions)
-    if list_len > 0:  
-        questions.pop(list_len - 1)  
-    
-    flashcard_dict = dict(zip(questions, answers))
-    return flashcard_dict
+<br>
 
+## 1. Install the LLaMA 3 Model (4B)
+<br>
+Before running the application, ensure that the LLaMA 3 LLM model (4B) is properly installed:
+Download the LLaMA 3 model (4B) from the official repository or source.
+Follow the installation instructions provided by the LLaMA model's maintainers.
+Ensure that all dependencies required for LLaMA 3 are installed and configured correctly on your system.
+<br>
 
+## 2. Installation and Setup
 
+>  Clone the repository and install the necessary dependencies:
+<br><br>
 
-def cheatsheat_generation(user_prompt):
-    cheatsheat_template = """
-    Answer the question below:
-    Here is the conversation history: {context}
-    Question: {question}
-    Generate 30 bullet points from the above given lecture.
-    """
+```bash
+Copy code
+git clone https://github.com/your-username/TextToResources.git
+cd TextToResources
+pip install -r requirements.txt
+```
+<br>
 
-    cheatsheat_input_prompt = {
-    "context": "",  
-    "question": f"{user_prompt}\n"
-    }
-    pdf_prompt = ChatPromptTemplate.from_template(template=cheatsheat_template)
-    pdf_chain = pdf_prompt | model
-    pdf_result = pdf_chain.invoke(cheatsheat_input_prompt)
-    cheatsheat_formatted_result = str(pdf_result).replace("h4", "h3") # TODO Remove
-    cheatsheat_formatted_result = cheatsheat_formatted_result.replace("→", "->")
-    cheatsheat_final_result = ""
+## 3. Running the Application
 
-    for line in cheatsheat_formatted_result.split("\n"):
-        if "--" not in line and "•" not in line:
-            cheatsheat_final_result += line
-            cheatsheat_final_result+='\n'
-    return markdown.markdown(cheatsheat_final_result)
+>  After installing the model and setting up the environment, run the application:
+<br><br>
 
-#API
-pdf_sum="summary.pdf"
-pdf_cheat="cheatsheet.pdf"
+```bash
+Copy code
+python app.py
+```
+<br>
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-    allow_credentials=True,
-)
+## 4. Generate Educational Resources
+<br>
 
-@app.get("/v1/info")
-async def home():
-    return {"200": "OK"}
+* Upload Captions: Begin by uploading text captions derived from an audio file.
 
-@app.get("/v1/get_pdf/{data}", response_class=FileResponse)
-async def get_pdf(data: str):
-    create(pdf_generation(data), "summary.pdf")
-    return FileResponse(pdf_sum, media_type='application/pdf', filename='summary.pdf')
+* Processing: The LLaMA 3 LLM model processes the uploaded captions to generate educational resources.
 
-"""@app.get("/text", response_class=JSONResponse)
-async def get_text():
-    return sample_text"""
+* Access Outputs: Access the generated PDFs, cheatsheets, and flashcards on the local host.
 
+* Access the Local Host
 
-"""@app.get("/title", response_class=JSONResponse)
-async def get_title():
-    return sample_title"""
+* Open your web browser and navigate to http://localhost:8000 to view and download the generated resources.
+<br>
 
-@app.get("/v1/flashcard/{data}",response_class=JSONResponse)
-async def flashc(data: str):
-    a=flashcard_generation(data)
-    return a
+## 5. Future Development
 
-@app.get("/v1/cheats/{data}",response_class=JSONResponse)
-async def cheatsh(data: str):
-    create(cheatsheat_generation(data),"cheatsheet.pdf")
-    return FileResponse(pdf_cheat,media_type='application/pdf',filename='cheatsheet.pdf')
+<br>
 
-"""f name == "main":
-    uvicorn.run(app, host = "0.0.0.0", port = 8001, log_level = "debug")"""
+We plan to enhance the interfacing and improve the functionality of the tool based on the feedback received. We are open to collaborations and suggestions for further development!
